@@ -19,7 +19,7 @@ after the ball hits the ground it can:
 '''
 
 #---------------- solutions beyond this point --------------------
-# question type - iteration with multiple choise
+# question type - iteration with multiple choise - maze question with no loops
 
 
 # assumptions that were not part of the question
@@ -32,7 +32,7 @@ after the ball hits the ground it can:
 # solution 1 - recursive - A
 def CanBallLandSafely1ARecursive(Velocity, StartIndex, FieldOfThorns):
     # we passed end of field with last throw - fail
-    if StartIndex + Velocity > len(FieldOfThorns):
+    if StartIndex + Velocity >= len(FieldOfThorns):
         return False
     # we landed on a thorn with last throw - fail
     elif FieldOfThorns[StartIndex + Velocity]:
@@ -54,21 +54,54 @@ def CanBallLandSafely1ARecursive(Velocity, StartIndex, FieldOfThorns):
 
 # solution 2 - stack and while - A - UNSOLVED
 def CanBallLandSafely2AStackWhile(Velocity, StartIndex, FieldOfThorns):
-    ChoiseStack = [-1]
-    PassedField = StartIndex + Velocity > len(FieldOfThorns)
+    ChoiseStack = [-2]
+    PassedField = StartIndex + Velocity >= len(FieldOfThorns)
     HitThorn = FieldOfThorns[StartIndex + Velocity]
-    BallStopped = Velocity == 0
-    GameOver = PassedField or HitThorn or BallStopped
-    NewStart = StartIndex + Velocity
-    NewVelocity = Velocity - 1
-    while not GameOver:
-        StartIndex = StartIndex + Velocity
-        # take tha last choise made
-        CurrentChoise = ChoiseStack[len(ChoiseStack) - 1]
-        # find new start point with 
-        PassedField = StartIndex + Velocity > len(FieldOfThorns)
-        HitThorn = FieldOfThorns[StartIndex + Velocity]
-        BallStopped = Velocity == 0
-        GameOver = PassedField or HitThorn or BallStopped
-    return BallStopped and not HitThorn and not PassedField
+    GameFail = PassedField or HitThorn
+    if (Velocity == 0) and not GameFail:
+        return True
+    StartIndex += Velocity
+    while ChoiseStack: # and not GameFail:
+        # progress last choise to next choise
+        ChoiseStack[-1] += 1
+        # check the top of the stack
+        CurrentChoise = ChoiseStack[-1]
+        # check how this choise affects the status
+        PassedField = StartIndex + Velocity + CurrentChoise >= len(FieldOfThorns)
+        HitThorn = FieldOfThorns[StartIndex + Velocity + CurrentChoise] if not PassedField else HitThorn
+        GameFail = PassedField or HitThorn
+        # last choise was bad and needs to be replaced
+        if GameFail:
+            # last choise cannot be promoted
+            if ChoiseStack[-1] == 1:
+                # entire branch must be deleted
+                del ChoiseStack[-1]
+                # revert changes made in this branch
+                if ChoiseStack:
+                    StartIndex -= Velocity
+                    Velocity -= ChoiseStack[-1]
+            # last choise can still be promoted - will be handled in the next iteration
+            else:
+                pass
+        # last choise was good so far
+        else:
+            # check if reached 0 velocity
+            if Velocity == 0:
+                return True
+            # choise is legal and we need to apply a new choise
+            else:
+                # append a new element to the stack
+                ChoiseStack.append(-2)
+                # set start and velocity to portray the last good choise
+                Velocity += CurrentChoise
+                StartIndex += Velocity
+    return False
+#BallStopped and not HitThorn and not PassedField
 
+# test cases
+test1 = [0, 1, 1, 0, 1, 0, 1, 1, 1] # start 0 velocity 4 pass
+test2 = [0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0] # start 0 velocity 4 pass
+print(CanBallLandSafely1ARecursive(4, 0, test1))
+print(CanBallLandSafely2AStackWhile(4, 0, test1))
+print(CanBallLandSafely1ARecursive(4, 0, test2))
+print(CanBallLandSafely2AStackWhile(4, 0, test2))
